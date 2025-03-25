@@ -1,13 +1,40 @@
+from flask import Flask, jsonify
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
-import warnings as warnings
-warnings.filterwarnings("ignore")
 import kagglehub
-# Download latest version
-path = kagglehub.dataset_download("swapnikavajrapu/razor-dataset")
-print("Path to dataset files:", path)
+import warnings
 
-df= pd.read_csv("/kaggle/input/deodorant-dataset-top-brands-in-india/deodorant_dataset.csv")
+warnings.filterwarnings("ignore")
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Download and load dataset
+path = kagglehub.dataset_download("swapnikavajrapu/razor-dataset")
+deodorant_df = pd.read_csv("/kaggle/input/deodorant-dataset-top-brands-in-india/deodorant_dataset.csv")
+
+# Function to analyze pink tax
+def analyze_pink_tax():
+    # Ensure necessary columns exist
+    if 'Price' in deodorant_df.columns and 'Category' in deodorant_df.columns:
+        avg_prices = deodorant_df.groupby('Category')['Price'].mean()
+        if len(avg_prices) > 1:
+            price_diff = avg_prices.max() - avg_prices.min()
+            return {
+                "average_prices": avg_prices.to_dict(),
+                "price_difference": price_diff,
+                "message": "Price disparities detected across gendered categories."
+            }
+        else:
+            return {"message": "Not enough category data for analysis."}
+    else:
+        return {"message": "Dataset does not contain required columns."}
+
+@app.route('/analyze', methods=['GET'])
+def get_analysis():
+    result = analyze_pink_tax()
+    return jsonify(result)
+
+if __name__ == '__main__':
+    app.run(debug=True)
 

@@ -1,62 +1,83 @@
+import os
+import json
+import cv2
 import tensorflow as tf
-import pandas as pd
 import numpy as np
-import barcode
-from barcode.writer import ImageWriter
+import pandas as pd
+import pytesseract
 from flask import Flask, request, jsonify
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Embedding, LSTM, Dense
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-# Load dataset
-dataset = pd.read_csv("pink_tax_dataset.csv")
-texts = dataset["description"].values
-labels = dataset["pink_tax"].values
+# Load and preprocess datasets
+def load_data(filepath):
+    df = pd.read_csv(filepath)
+    df = df.dropna()
+    df["gender_label"] = LabelEncoder().fit_transform(df["gender"])
+    tokenizer = Tokenizer()
+    tokenizer.fit_on_texts(df["product_name"])
+    df["product_encoded"] = pad_sequences(tokenizer.texts_to_sequences(df["product_name"]), maxlen=10)
+    X = np.column_stack((df[["price", "weight"]].values, df["product_encoded"].tolist()))
+    y = df["gender_label"].values
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    return X_train, X_test, y_train, y_test, tokenizer
 
-# Preprocess data
-tokenizer = Tokenizer(num_words=5000, oov_token="<OOV>")
-tokenizer.fit_on_texts(texts)
-sequences = tokenizer.texts_to_sequences(texts)
-padded_sequences = pad_sequences(sequences, maxlen=100, padding='post', truncating='post')
+# Build TensorFlow model
+def build_model():
+    model = tf.keras.Sequential([
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(32, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    return model
 
-# Build NLP model
-model = Sequential([
-    Embedding(input_dim=5000, output_dim=64, input_length=100),
-    LSTM(64, return_sequences=True),
-    LSTM(32),
-    Dense(32, activation='relu'),
-    Dense(1, activation='sigmoid')
-])
+# Train model
+def train_model(X_train, y_train):
+    model = build_model()
+    model.fit(X_train, y_train, epochs=15, batch_size=32, validation_split=0.2)
+    model.save("models/pink_tax_model.h5")
+    return model
 
-model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-model.fit(padded_sequences, labels, epochs=5, batch_size=16, validation_split=0.2)
-
-# Save model
-model.save("pink_tax_model.h5")
+# OCR and NLP integration for product scanning
+def scan_product(image_path, tokenizer):
+    image = cv2.imread(image_path)
+    text = pytesseract.image_to_string(image)
+    encoded_text = pad_sequences(tokenizer.texts_to_sequences([text]), maxlen=10)
+    return text, encoded_text
 
 # API Setup
 app = Flask(__name__)
+model = tf.keras.models.load_model("models/pink_tax_model.h5")
 
-@app.route('/predict', methods=['POST'])
+@app.route("/predict", methods=["POST"])
 def predict():
     data = request.json
-    text = data.get("text")
-    seq = tokenizer.texts_to_sequences([text])
-    padded = pad_sequences(seq, maxlen=100, padding='post', truncating='post')
-    prediction = model.predict(padded)
-    result = "Likely has pink tax" if prediction[0][0] > 0.5 else "No pink tax detected"
-    return jsonify({"prediction": result})
+    barcode = data.get("barcode")
+    image_path = data.get("image_path")
+    
+    product_info = fetch_product_info(barcode)
+    scanned_text, encoded_text = scan_product(image_path, tokenizer)
+    
+    price_data = np.column_stack(([product_info["price"], product_info["weight"]], encoded_text))
+    prediction = model.predict(price_data)[0][0]
+    
+    if prediction > 0.5:
+        recommended_stores = fetch_alternative_stores(product_info["product_name"])
+        return jsonify({"result": "Higher price for women", "recommendations": recommended_stores})
+    else:
+        return jsonify({"result": "Good job! No pink tax detected"})
 
-@app.route('/scan_barcode', methods=['POST'])
-def scan_barcode():
-    data = request.json
-    barcode_number = data.get("barcode")
-    item_info = dataset[dataset['barcode'] == barcode_number]
-    if not item_info.empty:
-        result = "Likely has pink tax" if item_info['pink_tax'].values[0] == 1 else "No pink tax detected"
-        return jsonify({"item": item_info['description'].values[0], "prediction": result})
-    return jsonify({"error": "Item not found in dataset"})
+# Fetch product info (placeholder function)
+def fetch_product_info(barcode):
+    return {"price": 5.99, "weight": 200, "brand_id": 1, "product_name": "Shampoo"}  # Dummy values
 
-if __name__ == '__main__':
+# Fetch alternative stores (placeholder function)
+def fetch_alternative_stores(product_name):
+    return ["Store A", "Store B", "Store C"]  # Dummy values
+
+if __name__ == "__main__":
+    tokenizer = Tokenizer()
     app.run(debug=True)

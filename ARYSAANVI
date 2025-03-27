@@ -1,17 +1,14 @@
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import warnings
-warnings.filterwarnings("ignore")
+import pytesseract
+from flask import Flask, request, jsonify
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-# Load Deodorant Dataset
-deodorant_df = pd.read_csv("/kaggle/input/deodorant-dataset-top-brands-in-india/deodorant_dataset.csv")
-# Load Razor Dataset
-razor_df = pd.read_csv("/kaggle/input/razor-dataset/razor_dataset.csv")
-
-# Data Cleaning Function
-def clean_data(df, category):
+# Load and preprocess datasets
+def load_data(filepath):
+    df = pd.read_csv(filepath)
     df = df.dropna()
     df['Category'] = category
     df['Price'] = df['Price'].astype(float)

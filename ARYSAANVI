@@ -1,83 +1,67 @@
-import os
-import json
-import cv2
-import tensorflow as tf
-import numpy as np
 import pandas as pd
-import pytesseract
-from flask import Flask, request, jsonify
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+warnings.filterwarnings("ignore")
 
-# Load and preprocess datasets
-def load_data(filepath):
-    df = pd.read_csv(filepath)
+# Load Deodorant Dataset
+deodorant_df = pd.read_csv("/kaggle/input/deodorant-dataset-top-brands-in-india/deodorant_dataset.csv")
+# Load Razor Dataset
+razor_df = pd.read_csv("/kaggle/input/razor-dataset/razor_dataset.csv")
+
+# Data Cleaning Function
+def clean_data(df, category):
     df = df.dropna()
-    df["gender_label"] = LabelEncoder().fit_transform(df["gender"])
-    tokenizer = Tokenizer()
-    tokenizer.fit_on_texts(df["product_name"])
-    df["product_encoded"] = pad_sequences(tokenizer.texts_to_sequences(df["product_name"]), maxlen=10)
-    X = np.column_stack((df[["price", "weight"]].values, df["product_encoded"].tolist()))
-    y = df["gender_label"].values
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    return X_train, X_test, y_train, y_test, tokenizer
+    df['Category'] = category
+    df['Price'] = df['Price'].astype(float)
+    return df
 
-# Build TensorFlow model
-def build_model():
-    model = tf.keras.Sequential([
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(32, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid')
-    ])
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    return model
+# Clean datasets
+deodorant_df = clean_data(deodorant_df, 'Deodorant')
+razor_df = clean_data(razor_df, 'Razor')
 
-# Train model
-def train_model(X_train, y_train):
-    model = build_model()
-    model.fit(X_train, y_train, epochs=15, batch_size=32, validation_split=0.2)
-    model.save("models/pink_tax_model.h5")
-    return model
+# Combine both datasets
+data = pd.concat([deodorant_df, razor_df], ignore_index=True)
 
-# OCR and NLP integration for product scanning
-def scan_product(image_path, tokenizer):
-    image = cv2.imread(image_path)
-    text = pytesseract.image_to_string(image)
-    encoded_text = pad_sequences(tokenizer.texts_to_sequences([text]), maxlen=10)
-    return text, encoded_text
+# Identify gendered products
+data['Gender'] = data['Product Name'].apply(lambda x: 'Men' if 'Men' in x else ('Women' if 'Women' in x else 'Unisex'))
 
-# API Setup
-app = Flask(__name__)
-model = tf.keras.models.load_model("models/pink_tax_model.h5")
+# Calculate Average Prices by Gender and Category
+avg_prices = data.groupby(['Category', 'Gender'])['Price'].mean().reset_index()
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    data = request.json
-    barcode = data.get("barcode")
-    image_path = data.get("image_path")
-    
-    product_info = fetch_product_info(barcode)
-    scanned_text, encoded_text = scan_product(image_path, tokenizer)
-    
-    price_data = np.column_stack(([product_info["price"], product_info["weight"]], encoded_text))
-    prediction = model.predict(price_data)[0][0]
-    
-    if prediction > 0.5:
-        recommended_stores = fetch_alternative_stores(product_info["product_name"])
-        return jsonify({"result": "Higher price for women", "recommendations": recommended_stores})
-    else:
-        return jsonify({"result": "Good job! No pink tax detected"})
+# Pink Tax Analysis
+def pink_tax_analysis(df, category):
+    men_price = df[(df['Category'] == category) & (df['Gender'] == 'Men')]['Price'].mean()
+    women_price = df[(df['Category'] == category) & (df['Gender'] == 'Women')]['Price'].mean()
+    tax_percentage = ((women_price - men_price) / men_price) * 100 if men_price else 0
+    return men_price, women_price, tax_percentage
 
-# Fetch product info (placeholder function)
-def fetch_product_info(barcode):
-    return {"price": 5.99, "weight": 200, "brand_id": 1, "product_name": "Shampoo"}  # Dummy values
+# Compute Pink Tax for each category
+pink_tax_data = {}
+for category in data['Category'].unique():
+    men_price, women_price, tax_percentage = pink_tax_analysis(data, category)
+    pink_tax_data[category] = {'Men': men_price, 'Women': women_price, 'Pink Tax %': tax_percentage}
 
-# Fetch alternative stores (placeholder function)
-def fetch_alternative_stores(product_name):
-    return ["Store A", "Store B", "Store C"]  # Dummy values
+# Convert to DataFrame
+pink_tax_df = pd.DataFrame.from_dict(pink_tax_data, orient='index')
+print(pink_tax_df)
 
-if __name__ == "__main__":
-    tokenizer = Tokenizer()
-    app.run(debug=True)
+# Visualization
+plt.figure(figsize=(10,5))
+sns.barplot(x=pink_tax_df.index, y=pink_tax_df['Pink Tax %'], palette='coolwarm')
+plt.xlabel("Category")
+plt.ylabel("Pink Tax Percentage")
+plt.title("Gender-Based Price Disparity (Pink Tax)")
+plt.show()
+
+# Store Locator Placeholder
+def find_cheaper_alternatives(product_name, category):
+    category_df = data[(data['Category'] == category) & (data['Gender'] == 'Unisex')]
+    if not category_df.empty:
+        return category_df.sort_values('Price').iloc[0]
+    return "No cheaper alternative found"
+
+# Example Usage
+cheaper_alternative = find_cheaper_alternatives("Gillette Razor Women", "Razor")
+print("Cheaper Alternative:", cheaper_alternative)

@@ -1,12 +1,37 @@
-
 import streamlit as st
-from model import load_data, detect_pink_tax
+import pandas as pd
+
+# Load data
+@st.cache_data
+def load_data():
+    return pd.read_csv("gender_pricing_dataset.csv")
 
 df = load_data()
 
+def detect_pink_tax(category, price, gender, df):
+    row = df[df["Category"].str.lower() == category.lower()]
+    if row.empty:
+        return "❌ Category not found in database."
+
+    price_men = float(row["Men_Avg_Price"])
+    price_women = float(row["Women_Avg_Price"])
+    difference = float(row["Percent_Difference"])
+    
+    neutral_price = price_men  # We treat men's price as baseline
+
+    if gender.lower() == "female":
+        overcharge = price - neutral_price
+        if overcharge > 0:
+            return f"⚠️ Pink tax detected! You're paying ${overcharge:.2f} more ({difference:.2f}% higher than men's price)."
+        else:
+            return "✅ No pink tax detected. You're paying equal or less than the baseline."
+    else:
+        return "You're paying the baseline price (male-targeted product)."
+
+# Streamlit UI
 st.title("🌱 Pink Tax Detector")
 
-category = st.selectbox("Product Category", df["category"].unique())
+category = st.selectbox("Product Category", df["Category"].unique())
 price = st.number_input("Enter product price ($)", min_value=0.0)
 gender = st.selectbox("Target Gender", ["Female", "Male"])
 

@@ -1,69 +1,15 @@
-import pandas as pd
-import pytesseract
-from flask import Flask, request, jsonify
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
 
+import streamlit as st
+from model import load_data, detect_pink_tax
 
-def clean_data(df, category):
-    # Your data cleaning code here
-    return df
+df = load_data()
 
-# Load and preprocess datasets
-def load_data(filepath):
-    df = pd.read_csv(filepath)
-    df = df.dropna()
-    df['Category'] = category
-    df['Price'] = df['Price'].astype(float)
-    return df
+st.title("🌱 Pink Tax Detector")
 
-# Clean datasets
-deodorant_df = clean_data(deodorant_df, 'Deodorant')
-razor_df = clean_data(razor_df, 'Razor')
+category = st.selectbox("Product Category", df["category"].unique())
+price = st.number_input("Enter product price ($)", min_value=0.0)
+gender = st.selectbox("Target Gender", ["Female", "Male"])
 
-# Combine both datasets
-data = pd.concat([deodorant_df, razor_df], ignore_index=True)
-
-# Identify gendered products
-data['Gender'] = data['Product Name'].apply(lambda x: 'Men' if 'Men' in x else ('Women' if 'Women' in x else 'Unisex'))
-
-# Calculate Average Prices by Gender and Category
-avg_prices = data.groupby(['Category', 'Gender'])['Price'].mean().reset_index()
-
-# Pink Tax Analysis
-def pink_tax_analysis(df, category):
-    men_price = df[(df['Category'] == category) & (df['Gender'] == 'Men')]['Price'].mean()
-    women_price = df[(df['Category'] == category) & (df['Gender'] == 'Women')]['Price'].mean()
-    tax_percentage = ((women_price - men_price) / men_price) * 100 if men_price else 0
-    return men_price, women_price, tax_percentage
-
-# Compute Pink Tax for each category
-pink_tax_data = {}
-for category in data['Category'].unique():
-    men_price, women_price, tax_percentage = pink_tax_analysis(data, category)
-    pink_tax_data[category] = {'Men': men_price, 'Women': women_price, 'Pink Tax %': tax_percentage}
-
-# Convert to DataFrame
-pink_tax_df = pd.DataFrame.from_dict(pink_tax_data, orient='index')
-print(pink_tax_df)
-
-# Visualization
-plt.figure(figsize=(10,5))
-sns.barplot(x=pink_tax_df.index, y=pink_tax_df['Pink Tax %'], palette='coolwarm')
-plt.xlabel("Category")
-plt.ylabel("Pink Tax Percentage")
-plt.title("Gender-Based Price Disparity (Pink Tax)")
-plt.show()
-
-# Store Locator Placeholder
-def find_cheaper_alternatives(product_name, category):
-    category_df = data[(data['Category'] == category) & (data['Gender'] == 'Unisex')]
-    if not category_df.empty:
-        return category_df.sort_values('Price').iloc[0]
-    return "No cheaper alternative found"
-
-# Example Usage
-cheaper_alternative = find_cheaper_alternatives("Gillette Razor Women", "Razor")
-print("Cheaper Alternative:", cheaper_alternative)
+if st.button("Check"):
+    result = detect_pink_tax(category, price, gender, df)
+    st.write(result)

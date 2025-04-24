@@ -1,3 +1,4 @@
+import streamlit as st
 import pandas as pd
 import pytesseract
 from flask import Flask, request, jsonify
@@ -6,13 +7,10 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-<<<<<<< HEAD
-=======
 
 def clean_data(df, category):
     # Your data cleaning code here
     return df
->>>>>>> a2784e004b2c349679e20de91db24b0c2ce8d3f0
 
 # Load and preprocess datasets
 def load_data(filepath):

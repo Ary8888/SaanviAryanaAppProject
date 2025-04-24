@@ -1,0 +1,36 @@
+Category,Industry,Women_Avg_Price,Men_Avg_Price,Price_Difference,Percent_Difference
+Bikes and Scooters,Toys and Accessories,86.72,81.9,4.819999999999993,5.89
+General Toys,Toys and Accessories,29.49,26.49,3.0,11.33
+Backpacks,Toys and Accessories,25.99,25.79,0.1999999999999993,0.78
+Preschool Toys,Toys and Accessories,21.65,19.85,1.7999999999999972,9.07
+Helmets and Pads,Toys and Accessories,25.79,22.89,2.8999999999999986,12.67
+Arts and Crafts,Toys and Accessories,32.79,30.59,2.1999999999999993,7.19
+Children’s Shirts,Children's Clothing,15.82,13.95,1.870000000000001,13.41
+Children’s Jeans,Children's Clothing,24.63,22.83,1.8000000000000007,7.88
+Baby Pants,Children's Clothing,18.33,16.77,1.5599999999999987,9.3
+Onesies,Children's Clothing,20.91,20.07,0.8399999999999999,4.19
+Baby Sweaters,Children's Clothing,24.87,23.39,1.4800000000000004,6.33
+Baby Shirts,Children's Clothing,12.58,12.38,0.1999999999999993,1.62
+Baby Shoes,Children's Clothing,20.69,20.07,0.620000000000001,3.09
+Children’s Underwear,Children's Clothing,17.67,18.17,-0.5,-2.75
+Toddler Shoes,Children's Clothing,28.85,29.6,-0.75,-2.53
+Dress Pants,Adult Clothing,75.66,71.71,3.950000000000003,5.51
+Dress Shirts,Adult Clothing,58.11,51.46,6.649999999999999,12.92
+Sweaters,Adult Clothing,63.19,59.45,3.739999999999995,6.29
+Jeans,Adult Clothing,62.75,57.09,5.659999999999997,9.91
+Shirts,Adult Clothing,29.23,25.51,3.719999999999999,14.58
+Socks,Adult Clothing,9.98,9.73,0.25,2.57
+Underwear,Adult Clothing,8.46,10.9,-2.4399999999999995,-22.39
+Shampoo and Conditioner,Personal Care,8.39,5.68,2.710000000000001,47.71
+Razor Cartridges,Personal Care,17.3,15.61,1.6900000000000013,10.83
+Razors,Personal Care,8.9,7.99,0.9100000000000001,11.39
+Lotion,Personal Care,8.25,7.43,0.8200000000000003,11.04
+Deodorant,Personal Care,4.91,4.75,0.16000000000000014,3.37
+Body Wash,Personal Care,5.7,5.4,0.2999999999999998,5.56
+Shaving Cream,Personal Care,3.73,3.89,-0.16000000000000014,-4.11
+Supports and Braces,Senior Care,37.17,32.43,4.740000000000002,14.62
+Canes,Senior Care,21.99,19.66,2.3299999999999983,11.85
+Compression Socks,Senior Care,27.86,26.77,1.0899999999999999,4.07
+Adult Diapers,Senior Care,32.71,32.06,0.6499999999999986,2.03
+Personal Urinals,Senior Care,11.32,9.32,2.0,21.46
+Digestive Health,Senior Care,9.41,9.84,-0.4299999999999997,-4.37

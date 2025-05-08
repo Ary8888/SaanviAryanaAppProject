@@ -8,9 +8,9 @@ import seaborn as sns
 # Load model and preprocessing tools
 with open("pink-tax-app/model.pkl", "rb") as f:
     model = pickle.load(f)
-with open("./encoder_ohe.pkl", "rb") as f:
+with open("pink-tax-app/encoder_ohe.pkl", "rb") as f:
     ohe = pickle.load(f)
-with open("./vectorizer_tfidf.pkl", "rb") as f:
+with open("pink-tax-app/vectorizer_tfidf.pkl", "rb") as f:
     tfidf = pickle.load(f)
 
 @st.cache_data

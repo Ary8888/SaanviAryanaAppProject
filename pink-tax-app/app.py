@@ -6,12 +6,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load model and preprocessing tools
-with open("pink-tax-app/model.pkl", "rb") as f:
+with open("model.pkl", "rb") as f:
     model = pickle.load(f)
-with open("pink-tax-app/encoder_ohe.pkl", "rb") as f:
+with open("encoder.pkl", "rb") as f:
     ohe = pickle.load(f)
-with open("pink-tax-app/vectorizer_tfidf.pkl", "rb") as f:
-    tfidf = pickle.load(f)
+
 
 @st.cache_data
 def load_data():
@@ -35,7 +34,6 @@ def make_input(gender):
         'Gender': [gender]
     })
     X_cat = ohe.transform(df_input)
-    X_desc = tfidf.transform([description])
     return hstack([X_cat, X_desc])
 
 X_male = make_input("M")

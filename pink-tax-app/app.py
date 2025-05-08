@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load model and preprocessing tools
-with open("./model.pkl", "rb") as f:
+with open("pink-tax-app/model.pkl", "rb") as f:
     model = pickle.load(f)
 with open("./encoder_ohe.pkl", "rb") as f:
     ohe = pickle.load(f)

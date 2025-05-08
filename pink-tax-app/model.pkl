@@ -1,0 +1,63 @@
+# streamlit_app.py
+
+import streamlit as st
+import pandas as pd
+import pickle
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load model and encoder
+with open("model.pkl", "rb") as f:
+    model = pickle.load(f)
+
+with open("encoder.pkl", "rb") as f:
+    encoder = pickle.load(f)
+
+# Load original dataset
+@st.cache_data
+def load_data():
+    df = pd.read_csv("final dataset1.csv")  # Match the original CSV
+    df['Price'] = df['Price'].replace('[\$,]', '', regex=True).astype(float)
+    df = df.dropna()
+    return df
+
+df = load_data()
+
+# Sidebar input
+st.title("💸 Pink Tax Price Predictor (Offline Model)")
+brand = st.sidebar.selectbox("Brand", df['Brand'].unique())
+item_type = st.sidebar.selectbox("Item Type", df['Item Type'].unique())
+gender = st.sidebar.selectbox("Gender", df['Gender'].unique())
+
+# Input DataFrame
+input_data = pd.DataFrame({
+    'Brand': [brand],
+    'Item Type': [item_type],
+    'Gender': [gender]
+})
+
+# One-hot encode input
+encoded_input = encoder.transform(input_data).toarray()
+encoded_input_df = pd.DataFrame(encoded_input, columns=encoder.get_feature_names_out())
+
+
+# Predict
+predicted_price = model.predict(encoded_input_df)[0]
+
+st.subheader("Predicted Price (Neutral Model)")
+st.write(f"💰 Estimated Price: **${predicted_price:.2f}**")
+
+# Gender-based visuals
+st.subheader("📊 Gender-Based Price Discrepancies")
+
+avg_prices = df.groupby('Gender')['Price'].mean().reset_index()
+fig, ax = plt.subplots()
+sns.barplot(data=avg_prices, x='Gender', y='Price', palette='pastel', ax=ax)
+ax.set_title("Average Price by Gender")
+st.pyplot(fig)
+
+st.subheader("📉 Price Differences by Category")
+gender_pivot = df.pivot_table(values='Price', index='Item Type', columns='Gender', aggfunc='mean')
+gender_pivot['Discrepancy ($F - $M)'] = gender_pivot['F'] - gender_pivot['M']
+
+st.dataframe(gender_pivot.sort_values('Discrepancy ($F - $M)', ascending=False).style.format("{:.2f}"))
